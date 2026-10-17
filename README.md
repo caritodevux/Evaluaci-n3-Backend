@@ -32,6 +32,8 @@ Con el entorno virtual activo, crear el super ususrio y dos usuarios normales en
 - ana
 - beto
 
+Alternativamente se puede usar una vez:
+`python manage.py shell -c "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@ejemplo.cl', 'admin'); User.objects.create_user('ana', password='Clave123'); User.objects.create_user('beto', password='Clave123')"`
 
 ## 4. Endpoints
 | Método | Endpoint | Funcionalidad |
@@ -151,6 +153,7 @@ fetch('/api/solicitudes/', {method: 'POST',
    - *Implementación:* `SessionAuthentication` exige el token CSRF en escrituras. En `settings.py` se fijaron `SESSION_COOKIE_HTTPONLY = True` y `SameSite = 'Lax'` para las cookies de sesión y CSRF. En producción además se debe usar HTTPS.
    - *Verificación:* escenario 10 (`test_10` y `test_10b`).
 
+**Criterio aplicado**: las recomendaciones no se copiaron automáticamente: se revisaron, se comprobaron y se validaron con pruebas antes de dejarlas en el proyecto.
 
 ## 9. Estructura del proyecto
 

@@ -1,7 +1,8 @@
 {
   "info": {
-    "name": "Evaluación 3 - API Soporte Técnico",
-    "description": "Ejecutar con el Collection Runner EN ORDEN. Requiere los usuarios de prueba del README (admin, ana, beto), el servidor en http://127.0.0.1:8000 y 'Automatically follow redirects' activado.",
+    "_postman_id": "7413d43e-5a02-4781-a5d1-c49ca5db0b85",
+    "name": "Evaluacion 3 - API Soporte Tecnico",
+    "description": "Ejecutar con el Runner EN ORDEN. Requiere los usuarios de prueba del README (admin, ana, beto), el servidor en http://127.0.0.1:8000 y 'Automatically follow redirects' activado.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -11,24 +12,35 @@
         "type": "text/javascript",
         "exec": [
           "// Django exige el token CSRF en el header X-CSRFToken para escrituras con sesión.",
-          "const token = pm.cookies.get('csrftoken');",
+          "let token = pm.cookies.get('csrftoken');",
+          "if (!token) { token = pm.collectionVariables.get('csrftoken'); }   // respaldo",
+          "console.log('X-CSRFToken usado:', token ? token.substring(0, 8) + '...' : 'NINGUNO');",
           "if (token) { pm.request.headers.upsert({ key: 'X-CSRFToken', value: token }); }"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Guarda el token vigente después de cada respuesta (por cookie o desde el formulario HTML).",
+          "const cookie = pm.cookies.get('csrftoken');",
+          "if (cookie) { pm.collectionVariables.set('csrftoken', cookie); }",
+          "const m = pm.response.text().match(/name=\"csrfmiddlewaretoken\" value=\"([^\"]+)\"/);",
+          "if (!cookie && m) { pm.collectionVariables.set('csrftoken', m[1]); }"
         ]
       }
     }
   ],
   "variable": [
     {
-      "key": "base_url",
-      "value": "http://127.0.0.1:8000"
-    },
-    {
       "key": "pass_admin",
-      "value": "Admin12345"
+      "value": "admin"
     },
     {
       "key": "pass_usuario",
-      "value": "Usuario12345"
+      "value": "Clave123"
     },
     {
       "key": "solicitud_id",
@@ -36,6 +48,10 @@
     },
     {
       "key": "ajena_id",
+      "value": ""
+    },
+    {
+      "key": "csrftoken",
       "value": ""
     }
   ],
@@ -46,13 +62,19 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api-auth/login/",
+          "raw": "http://127.0.0.1:8000/api-auth/login/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api-auth",
-            "login"
+            "login",
+            ""
           ]
         }
       },
@@ -74,13 +96,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api-auth/login/",
+          "raw": "http://127.0.0.1:8000/api-auth/login/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api-auth",
-            "login"
+            "login",
+            ""
           ]
         },
         "body": {
@@ -115,18 +143,58 @@
       ]
     },
     {
+      "name": "01b Refrescar token CSRF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api-auth/login/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api-auth",
+            "login",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK - token CSRF renovado tras el login', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "02 beto crea una solicitud (será la 'ajena')",
       "request": {
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
-            "solicitudes"
+            "solicitudes",
+            ""
           ]
         },
         "body": {
@@ -158,13 +226,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api-auth/logout/",
+          "raw": "http://127.0.0.1:8000/api-auth/logout/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api-auth",
-            "logout"
+            "logout",
+            ""
           ]
         }
       },
@@ -186,13 +260,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api-auth/login/",
+          "raw": "http://127.0.0.1:8000/api-auth/login/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api-auth",
-            "login"
+            "login",
+            ""
           ]
         },
         "body": {
@@ -227,18 +307,58 @@
       ]
     },
     {
+      "name": "04b Refrescar token CSRF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api-auth/login/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api-auth",
+            "login",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK - token CSRF renovado tras el login', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "E1 Registrar solicitud válida",
       "request": {
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
-            "solicitudes"
+            "solicitudes",
+            ""
           ]
         },
         "body": {
@@ -271,13 +391,19 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
-            "solicitudes"
+            "solicitudes",
+            ""
           ]
         }
       },
@@ -300,14 +426,20 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{ajena_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{ajena_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{ajena_id}}"
+            "{{ajena_id}}",
+            ""
           ]
         }
       },
@@ -329,14 +461,20 @@
         "method": "PATCH",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{solicitud_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{solicitud_id}}"
+            "{{solicitud_id}}",
+            ""
           ]
         },
         "body": {
@@ -367,14 +505,20 @@
         "method": "PATCH",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{solicitud_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{solicitud_id}}"
+            "{{solicitud_id}}",
+            ""
           ]
         },
         "body": {
@@ -405,14 +549,20 @@
         "method": "PUT",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{solicitud_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{solicitud_id}}"
+            "{{solicitud_id}}",
+            ""
           ]
         },
         "body": {
@@ -443,13 +593,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
-            "solicitudes"
+            "solicitudes",
+            ""
           ]
         },
         "body": {
@@ -480,14 +636,20 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{solicitud_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{solicitud_id}}"
+            "{{solicitud_id}}",
+            ""
           ]
         }
       },
@@ -509,13 +671,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
-            "solicitudes"
+            "solicitudes",
+            ""
           ]
         },
         "body": {
@@ -556,13 +724,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api-auth/logout/",
+          "raw": "http://127.0.0.1:8000/api-auth/logout/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api-auth",
-            "logout"
+            "logout",
+            ""
           ]
         }
       },
@@ -584,13 +758,19 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
-            "solicitudes"
+            "solicitudes",
+            ""
           ]
         }
       },
@@ -612,13 +792,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api-auth/login/",
+          "raw": "http://127.0.0.1:8000/api-auth/login/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api-auth",
-            "login"
+            "login",
+            ""
           ]
         },
         "body": {
@@ -653,18 +839,58 @@
       ]
     },
     {
+      "name": "05b Refrescar token CSRF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api-auth/login/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api-auth",
+            "login",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK - token CSRF renovado tras el login', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "Admin lista TODAS las solicitudes",
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
-            "solicitudes"
+            "solicitudes",
+            ""
           ]
         }
       },
@@ -687,14 +913,20 @@
         "method": "PATCH",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{solicitud_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{solicitud_id}}"
+            "{{solicitud_id}}",
+            ""
           ]
         },
         "body": {
@@ -726,14 +958,20 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{solicitud_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{solicitud_id}}"
+            "{{solicitud_id}}",
+            ""
           ]
         }
       },
@@ -755,14 +993,20 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "raw": "http://127.0.0.1:8000/api/solicitudes/{{solicitud_id}}/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api",
             "solicitudes",
-            "{{solicitud_id}}"
+            "{{solicitud_id}}",
+            ""
           ]
         }
       },
@@ -784,13 +1028,19 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/api-auth/logout/",
+          "raw": "http://127.0.0.1:8000/api-auth/logout/",
+          "protocol": "http",
           "host": [
-            "{{base_url}}"
+            "127",
+            "0",
+            "0",
+            "1"
           ],
+          "port": "8000",
           "path": [
             "api-auth",
-            "logout"
+            "logout",
+            ""
           ]
         }
       },
