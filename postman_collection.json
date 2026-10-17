@@ -1,0 +1,810 @@
+{
+  "info": {
+    "name": "Evaluación 3 - API Soporte Técnico",
+    "description": "Ejecutar con el Collection Runner EN ORDEN. Requiere los usuarios de prueba del README (admin, ana, beto), el servidor en http://127.0.0.1:8000 y 'Automatically follow redirects' activado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Django exige el token CSRF en el header X-CSRFToken para escrituras con sesión.",
+          "const token = pm.cookies.get('csrftoken');",
+          "if (token) { pm.request.headers.upsert({ key: 'X-CSRFToken', value: token }); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "pass_admin",
+      "value": "Admin12345"
+    },
+    {
+      "key": "pass_usuario",
+      "value": "Usuario12345"
+    },
+    {
+      "key": "solicitud_id",
+      "value": ""
+    },
+    {
+      "key": "ajena_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Abrir login (entrega cookie csrftoken)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api-auth/login/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api-auth",
+            "login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK - cookie csrftoken recibida', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 Login beto",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api-auth/login/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api-auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "beto",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "{{pass_usuario}}",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login correcto: redirige y responde JSON (sesión creada)', function () {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.headers.get('Content-Type')).to.include('json');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 beto crea una solicitud (será la 'ajena')",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Sin internet\",\n  \"descripcion\": \"No hay red en el segundo piso\",\n  \"categoria\": \"Redes\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('ajena_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Logout beto",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api-auth/logout/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api-auth",
+            "logout"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout correcto (redirige a la página de login)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Login ana (usuario normal)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api-auth/login/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api-auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "ana",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "{{pass_usuario}}",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login correcto: redirige y responde JSON (sesión creada)', function () {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.headers.get('Content-Type')).to.include('json');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E1 Registrar solicitud válida",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Mouse dañado\",\n  \"descripcion\": \"El mouse no responde al hacer click\",\n  \"categoria\": \"Hardware\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E1: 201 Created', function () { pm.response.to.have.status(201); });",
+              "pm.test('estado inicial Pendiente y usuario ana', function () { const j = pm.response.json(); pm.expect(j.estado).to.eql('Pendiente'); pm.expect(j.usuario).to.eql('ana'); });",
+              "pm.collectionVariables.set('solicitud_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E2 Listar mis solicitudes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E2: 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('solo aparecen solicitudes de ana', function () { pm.response.json().forEach(s => pm.expect(s.usuario).to.eql('ana')); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E3 Consultar solicitud ajena",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{ajena_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{ajena_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E3: 404 (no se revela que existe)', function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E4 Usuario normal intenta cambiar estado",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado\": \"Resuelta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E4: 403 Forbidden - modificación rechazada', function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PATCH título propio (permitido)",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Mouse dañado (urgente)\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK - PATCH de título', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PUT solicitud propia (permitido)",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Mouse inalámbrico dañado\",\n  \"descripcion\": \"El mouse inalámbrico no responde\",\n  \"categoria\": \"Hardware\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK - PUT', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E6 Datos inválidos",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"\",\n  \"descripcion\": \"x\",\n  \"categoria\": \"Otra\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E6: 400 Bad Request', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuario normal intenta eliminar",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('403 - usuarios normales no pueden eliminar', function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E10 Escritura SIN token CSRF",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Mouse dañado\",\n  \"descripcion\": \"El mouse no responde al hacer click\",\n  \"categoria\": \"Hardware\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Quitamos el header para simular un cliente sin token CSRF",
+              "pm.request.headers.remove('X-CSRFToken');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E10: 403 - CSRF rechazado', function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E9a Logout ana",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api-auth/logout/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api-auth",
+            "logout"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout correcto (redirige a la página de login)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E8/E9b Acceso sin sesión (o con sesión cerrada)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E8/E9: acceso rechazado (401 o 403)', function () { pm.expect([401, 403]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Login admin",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api-auth/login/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api-auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "admin",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "{{pass_admin}}",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login correcto: redirige y responde JSON (sesión creada)', function () {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.headers.get('Content-Type')).to.include('json');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin lista TODAS las solicitudes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('ve solicitudes de varios usuarios', function () { const u = new Set(pm.response.json().map(s => s.usuario)); pm.expect(u.size).to.be.above(1); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E5 Admin cambia estado",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado\": \"En proceso\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E5: 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('estado actualizado', function () { pm.expect(pm.response.json().estado).to.eql('En proceso'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "E7 Admin elimina solicitud",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('E7: 204 No Content', function () { pm.response.to.have.status(204); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultar solicitud eliminada",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/solicitudes/{{solicitud_id}}/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('404 Not Found', function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout admin",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api-auth/logout/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api-auth",
+            "logout"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout correcto (redirige a la página de login)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
