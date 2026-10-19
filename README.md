@@ -26,7 +26,6 @@ python manage.py runserver
 La API queda en `http://127.0.0.1:8000/api/solicitudes/`.
 
 ## 3. Usuarios de prueba
-
 Con el entorno virtual activo, crear el super ususrio y dos usuarios normales en desde `http://127.0.0.1:8000/admin/` (sin marcar "Staff status"):
 - admin `python manage.py createsuperuser`
 - ana
@@ -34,6 +33,15 @@ Con el entorno virtual activo, crear el super ususrio y dos usuarios normales en
 
 Alternativamente se puede usar una vez:
 `python manage.py shell -c "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@ejemplo.cl', 'admin'); User.objects.create_user('ana', password='Clave123'); User.objects.create_user('beto', password='Clave123')"`
+
+
+| Usuario | Contraseña | Perfil |
+|---|---|---|
+| admin | admin | Administrador (`is_staff = True`) |
+| ana | Clave123 | Usuario normal |
+| beto | Clave123 | Usuario normal |
+
+La colección de Postman usa estas credenciales (variables `pass_admin` y `pass_usuario` de la colección). Si se crean los usuarios con otras contraseñas, hay que editar esas variables antes de ejecutarla.
 
 ## 4. Endpoints
 | Método | Endpoint | Funcionalidad |
@@ -93,6 +101,8 @@ Cubren los 10 escenarios de la evaluación (archivo `soporte/tests.py`).
 2. Con el servidor en marcha y los usuarios de prueba creados, ejecutar la colección completa con **Collection Runner**, **en orden**.
 3. Mantener activada la opción *Automatically follow redirects* (el login y el logout de Django responden con una redirección).
 4. Usar siempre `127.0.0.1` (no mezclar con `localhost`) para que Postman conserve las cookies.
+5. **Ejecutar siempre la colección completa, desde la primera request ("00")**: cada request toma el token CSRF y los ids de la anterior, por lo que una request suelta puede responder 403.
+6. Resultado esperado: 25 requests y 29 pruebas pasadas, sin errores.
 
 ### 7.3 Interfaz navegable de DRF
 1. Abrir `http://127.0.0.1:8000/api-auth/login/` e iniciar sesión.
@@ -163,7 +173,7 @@ Evaluación3-Backend/
 ├── requirements.txt
 ├── README.md
 ├── postman_collection.json
-├── db.sqlite3
+├── db.sqlite3 (se crea al ejecutar `migrate`; no se incluye en la entrega)
 ├── config/
 │   ├── settings.py
 │   ├── urls.py
