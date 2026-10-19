@@ -26,15 +26,18 @@ python manage.py runserver
 La API queda en `http://127.0.0.1:8000/api/solicitudes/`.
 
 ## 3. Usuarios de prueba
-Con el entorno virtual activo, crear el super ususrio y dos usuarios normales en desde `http://127.0.0.1:8000/admin/` (sin marcar "Staff status"):
-- admin `python manage.py createsuperuser`
-- ana
-- beto
+Con el entorno virtual activo, es necesario crear un superusuario y dos usuarios estándar (asegurándose de que estos últimos no tengan marcado el permiso "Staff status"). Puedes hacerlo de dos maneras:
 
-Alternativamente se puede usar una vez:
+**Opción 1: Creación manual**
+1. Crea el administrador desde la terminal: `python manage.py createsuperuser`
+2. Inicia el servidor e ingresa al panel de administración en `http://127.0.0.1:8000/admin/`
+3. Crea a los usuarios ana y beto desde la interfaz web.
+
+**Opción 2: Creación automatizada**
+Para crear los tres usuarios en un solo paso y con las credenciales exactas, ejecuta el siguiente comando en tu terminal:
 `python manage.py shell -c "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@ejemplo.cl', 'admin'); User.objects.create_user('ana', password='Clave123'); User.objects.create_user('beto', password='Clave123')"`
 
-
+**Resumen de credenciales**
 | Usuario | Contraseña | Perfil |
 |---|---|---|
 | admin | admin | Administrador (`is_staff = True`) |
@@ -139,6 +142,61 @@ fetch('/api/solicitudes/', {method: 'POST',
             'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)[1]},
   body: JSON.stringify({titulo: 'Prueba CSRF', descripcion: 'Con token en el header', categoria: 'Redes'})
 }).then(r => console.log(r.status));
+```
+### 7.5 Independencia de los usuarios de prueba
+**Qué no depende de los usuarios**
+- **La API** (`views.py`, `serializers.py`). Decide por `is_staff`, no por el nombre: cualquier usuario con `is_staff=True` funciona como administrador y cualquier otro como usuario normal. El nombre de usuario solo se usa para mostrarlo en las respuestas.
+- **`python manage.py test`.** Los tests crean sus propios usuarios (`ana`, `beto` y `admin`) en una base de datos temporal que Django crea y destruye en cada ejecución. No tocan la base de datos del proyecto, por lo que dan el mismo resultado aunque existan otros usuarios, o incluso otros llamados `ana` o `admin`.
+
+**Qué sí depende de los usuarios**
+- **La colección de Postman** inicia sesión con los nombres `admin`, `ana` y `beto` (sección 3). Las contraseñas están en las variables de la colección `pass_admin` y `pass_usuario`, pero los nombres están fijos en las requests de login (`01 Login beto`, `04 Login ana` y `05 Login admin`), y las pruebas "E1" y "E2" comparan con el usuario `ana`. Si se usan otros nombres, hay que editar esas requests y esas dos pruebas antes de ejecutarla.
+
+### 7.6 Trazabilidad: de cada prueba al código
+Cada prueba de la colección de Postman (y su equivalente en `soporte/tests.py`) se explica por una parte concreta del código:
+
+| Prueba | Dónde se resuelve | Qué ocurre |
+|---|---|---|
+| **E1** Registrar solicitud válida (201) | `serializers.py` y `perform_create` en `views.py` | Si el serializer es válido, `perform_create` guarda con `usuario=request.user`. El estado "Pendiente" proviene del `default` del modelo |
+| **E2** Listar solicitudes (200, solo las propias) | `get_queryset` en `views.py` | El usuario normal recibe `filter(usuario=request.user)` |
+| **E3** Consultar solicitud ajena (404) | `get_queryset` en `views.py` | DRF busca el objeto dentro del queryset ya filtrado; si no está, responde 404 sin revelar que existe |
+| **E4** Usuario normal cambia el estado (403) | `perform_update` en `views.py` | Si no es `is_staff` y el estado nuevo es distinto del actual, lanza `PermissionDenied` |
+| **E5** Administrador cambia el estado (200) | `get_queryset` y `perform_update` | El administrador ve todas las solicitudes y `perform_update` lo permite |
+| **E6** Datos inválidos (400) | `validate_titulo` y `validate_descripcion` en `serializers.py`, más los `choices` del modelo | El serializer falla antes de llegar a `perform_create` y DRF responde 400 |
+| **E7** Administrador elimina (204) | `perform_destroy` en `views.py` | Si es `is_staff`, ejecuta `instance.delete()` |
+| Usuario normal intenta eliminar (403) | `perform_destroy` en `views.py` | Lanza `PermissionDenied` (si la solicitud fuera ajena, antes respondería 404) |
+| `usuario` enviado por el cliente se ignora | `serializers.py` | `ReadOnlyField` y `read_only_fields` impiden que el valor llegue a `validated_data` |
+
+Observación sobre el orden de las validaciones: en E4 el serializer comprueba primero que el estado enviado sea uno de los permitidos y después `perform_update` rechaza el cambio por falta de permisos. Si se enviara un estado inexistente, la respuesta sería 400 y no 403.
+
+Las pruebas **E8, E9 y E10** no dependen de `views.py` ni de `serializers.py`, sino de la configuración de autenticación:
+
+| Prueba | Dónde se resuelve |
+|---|---|
+| **E8** Acceso sin autenticación (403) | `DEFAULT_PERMISSION_CLASSES = IsAuthenticated` en `settings.py` |
+| **E9** Cerrar sesión y reutilizarla (403) | `LogoutView` de Django, disponible por `api-auth/` en `config/urls.py`: destruye la sesión en el servidor y, desde ese momento, aplica lo mismo que en E8 |
+| **E10** Escritura sin token CSRF (403) | `SessionAuthentication` de DRF, configurada en `settings.py`: valida el token CSRF en las escrituras |
+
+#### Comprobación del serializer sin servidor
+
+Con el entorno virtual activo, desde `python manage.py shell` (no escribe en la base de datos mientras no se llame a `.save()`):
+
+```python
+from soporte.serializers import SolicitudSerializer
+
+# Equivale a E6: datos inválidos
+s = SolicitudSerializer(data={'titulo': '', 'descripcion': 'x', 'categoria': 'Otra'})
+print(s.is_valid())      # False
+print(s.errors)          # un error por cada campo inválido
+
+# Campos protegidos: 'usuario' e 'id' enviados por el cliente se ignoran
+s = SolicitudSerializer(data={
+    'titulo': 'Mouse dañado',
+    'descripcion': 'El mouse no responde al hacer click',
+    'categoria': 'Hardware',
+    'usuario': 999, 'id': 999,
+})
+print(s.is_valid())            # True
+print(dict(s.validated_data))  # solo titulo, descripcion y categoria
 ```
 
 ## 8. Registro del uso de Inteligencia Artificial
